@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classroom Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #13151a;
+    color: #f0ede6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  .wordmark {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.22);
+    margin-bottom: 48px;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 22px 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+
+  .card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  .card:active { transform: scale(0.98); }
+
+  .card-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+  }
+
+  .card-text { flex: 1; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f0ede6;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.38);
+    line-height: 1.4;
+  }
+
+  .card-arrow {
+    font-size: 18px;
+    color: rgba(255,255,255,0.20);
+    flex-shrink: 0;
+  }
+
+  .teacher-card .card-icon { background: rgba(79,124,255,0.12); }
+  .student-card .card-icon { background: rgba(52,199,89,0.10); }
+  .display-card .card-icon { background: rgba(168,85,247,0.10); }
+</style>
+</head>
+<body>
+
+<div class="wordmark">Classroom Live</div>
+
+<div class="cards">
+
+  <a href="teacher.html" class="card teacher-card">
+    <div class="card-icon">🎛</div>
+    <div class="card-text">
+      <div class="card-title">Teacher Control</div>
+      <div class="card-desc">Launch sessions, pick mode, track responses</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="student.html" class="card student-card">
+    <div class="card-icon">📱</div>
+    <div class="card-text">
+      <div class="card-title">Student Input</div>
+      <div class="card-desc">Submit a vote or a word — share this URL with students</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="display.html" class="card display-card">
+    <div class="card-icon">📡</div>
+    <div class="card-text">
+      <div class="card-title">Live Display</div>
+      <div class="card-desc">Embed in Slides.com iframe — shows results in real time</div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+</div>
+
+</body>
+</html>
