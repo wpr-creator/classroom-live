@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classroom Control — Teacher</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #13151a;
+    color: #f0ede6;
+    min-height: 100vh;
+    padding: 40px 32px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    color: #f0ede6;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: #f0ede6;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: rgba(255,255,255,0.30);
+  }
+
+  textarea { min-height: 80px; resize: vertical; }
+
+  select option { background: #1e2028; }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .options-grid input { margin: 0; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 24px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-primary {
+    background: #4f7cff;
+    color: #ffffff;
+  }
+
+  .btn-danger {
+    background: rgba(255, 80, 80, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 80, 80, 0.25);
+    margin-top: 10px;
+  }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    color: #f0ede6;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .status-bar {
+    background: rgba(79, 124, 255, 0.12);
+    border: 1px solid rgba(79, 124, 255, 0.25);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.70);
+    margin-bottom: 20px;
+    display: none;
+  }
+
+  .status-bar.visible { display: block; }
+
+  .status-bar strong {
+    color: #7da8ff;
+    font-weight: 700;
+  }
+
+  .response-count {
+    font-size: 36px;
+    font-weight: 700;
+    color: #4f7cff;
+    text-align: center;
+    margin: 8px 0 4px;
+  }
+
+  .response-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.30);
+    text-align: center;
+  }
+
+  .mode-pills {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .pill {
+    padding: 10px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .pill.active {
+    background: rgba(79, 124, 255, 0.18);
+    border-color: rgba(79, 124, 255, 0.45);
+    color: #7da8ff;
+  }
+
+  .abcd-options { display: none; }
+  .abcd-options.visible { display: block; }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+    margin: 20px 0;
+  }
+
+  .link-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .link-row input {
+    flex: 1;
+    font-size: 13px;
+    color: rgba(255,255,255,0.50);
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #f0ede6;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2a2d36;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #f0ede6;
+    transition: transform 0.25s ease;
+    z-index: 99;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<h1>Classroom Live · Teacher Control</h1>
+
+<div class="status-bar" id="statusBar">
+  Session active &nbsp;·&nbsp; <strong id="statusMode">—</strong> &nbsp;·&nbsp;
+  Students go to <strong id="statusUrl">—</strong> and enter code <strong id="statusCode">—</strong>
+</div>
+
+<!-- RESPONSE COUNTER -->
+<div class="card" id="counterCard" style="display:none;">
+  <h2>Live Responses</h2>
+  <div class="response-count" id="responseCount">0</div>
+  <div class="response-label">responses received</div>
+  <button class="btn btn-danger" id="endBtn">End Session</button>
+</div>
+
+<!-- BUILD SESSION -->
+<div class="card" id="buildCard">
+  <h2>New Session</h2>
+
+  <label>Mode</label>
+  <div class="mode-pills">
+    <div class="pill active" data-mode="poll_abcd">A B C D</div>
+    <div class="pill" data-mode="poll_binary">Yes / No</div>
+    <div class="pill" data-mode="poll_scale">1 – 5</div>
+    <div class="pill" data-mode="wordcloud">Word Cloud</div>
+  </div>
+
+  <label>Question</label>
+  <textarea id="questionInput" placeholder="Type your question here..."></textarea>
+
+  <div class="abcd-options visible" id="abcdOptions">
+    <label>Answer Options</label>
+    <div class="options-grid">
+      <input type="text" id="optA" placeholder="A — Option">
+      <input type="text" id="optB" placeholder="B — Option">
+      <input type="text" id="optC" placeholder="C — Option">
+      <input type="text" id="optD" placeholder="D — Option">
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="launchBtn">Launch Session</button>
+</div>
+
+<!-- LINKS -->
+<div class="card">
+  <h2>Share with Students</h2>
+  <label>Student Input Page</label>
+  <div class="link-row">
+    <input type="text" id="studentUrl" readonly value="">
+    <button class="copy-btn" onclick="copyUrl('studentUrl')">Copy</button>
+  </div>
+  <label style="margin-top:16px;">Display Page (paste into Slides.com iframe)</label>
+  <div class="link-row">
+    <input type="text" id="displayUrl" readonly value="">
+    <button class="copy-btn" onclick="copyUrl('displayUrl')">Copy</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+const SUPABASE_URL = 'https://yxppaxroxgndbzgsmfqz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBheHJveGduZGJ6Z3NtZnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDc2NDAsImV4cCI6MjA5Nzk4MzY0MH0.5JNh_trRI1KCMkHmxIBLya95J1IwrgncE6eF6Sf-IE4';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentMode = 'poll_abcd';
+let activeSessionId = null;
+let responseSub = null;
+
+// Set base URLs — update these after deploying to Vercel
+const BASE = window.location.origin + window.location.pathname.replace('teacher.html','');
+document.getElementById('studentUrl').value = BASE + 'student.html';
+document.getElementById('displayUrl').value = BASE + 'display.html';
+
+// Mode pills
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentMode = pill.dataset.mode;
+    document.getElementById('abcdOptions').classList.toggle('visible', currentMode === 'poll_abcd');
+  });
+});
+
+// Launch session
+document.getElementById('launchBtn').addEventListener('click', async () => {
+  const question = document.getElementById('questionInput').value.trim();
+  if (!question) { showToast('Add a question first'); return; }
+
+  let options = null;
+  if (currentMode === 'poll_abcd') {
+    options = [
+      document.getElementById('optA').value || 'A',
+      document.getElementById('optB').value || 'B',
+      document.getElementById('optC').value || 'C',
+      document.getElementById('optD').value || 'D',
+    ];
+  } else if (currentMode === 'poll_binary') {
+    options = ['Yes', 'No'];
+  } else if (currentMode === 'poll_scale') {
+    options = ['1','2','3','4','5'];
+  }
+
+  // Deactivate any existing sessions
+  await db.from('sessions').update({ active: false }).eq('active', true);
+
+  const { data, error } = await db.from('sessions').insert({
+    mode: currentMode,
+    question,
+    options,
+    active: true
+  }).select().single();
+
+  if (error) { showToast('Error launching: ' + error.message); return; }
+
+  activeSessionId = data.id;
+  startListening();
+  showActiveState(data);
+});
+
+// End session
+document.getElementById('endBtn').addEventListener('click', async () => {
+  if (!activeSessionId) return;
+  await db.from('sessions').update({ active: false }).eq('id', activeSessionId);
+  if (responseSub) { db.removeChannel(responseSub); responseSub = null; }
+  activeSessionId = null;
+  document.getElementById('statusBar').classList.remove('visible');
+  document.getElementById('counterCard').style.display = 'none';
+  document.getElementById('buildCard').style.display = 'block';
+  document.getElementById('responseCount').textContent = '0';
+  showToast('Session ended');
+});
+
+function showActiveState(session) {
+  document.getElementById('buildCard').style.display = 'none';
+  document.getElementById('counterCard').style.display = 'block';
+  document.getElementById('statusBar').classList.add('visible');
+  document.getElementById('statusMode').textContent = session.mode.replace('_',' ').toUpperCase();
+  document.getElementById('statusUrl').textContent = 'your student page';
+}
+
+function startListening() {
+  if (responseSub) db.removeChannel(responseSub);
+  // Initial count
+  db.from('responses').select('id', { count: 'exact' })
+    .eq('session_id', activeSessionId)
+    .then(({ count }) => {
+      document.getElementById('responseCount').textContent = count || 0;
+    });
+
+  responseSub = db.channel('responses-teacher')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'responses',
+      filter: `session_id=eq.${activeSessionId}`
+    }, () => {
+      const current = parseInt(document.getElementById('responseCount').textContent) || 0;
+      document.getElementById('responseCount').textContent = current + 1;
+    })
+    .subscribe();
+}
+
+function copyUrl(id) {
+  const val = document.getElementById(id).value;
+  navigator.clipboard.writeText(val).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>

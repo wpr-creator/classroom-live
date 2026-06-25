@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Classroom Live</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #13151a;
+    color: #f0ede6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+
+  .logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 36px;
+  }
+
+  .waiting {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .waiting-icon {
+    font-size: 48px;
+    opacity: 0.4;
+  }
+
+  .waiting p {
+    font-size: 16px;
+    color: rgba(255,255,255,0.40);
+    line-height: 1.5;
+  }
+
+  .session-wrap {
+    width: 100%;
+    max-width: 420px;
+    display: none;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .session-wrap.visible {
+    display: flex;
+  }
+
+  .question-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 24px 22px;
+  }
+
+  .question-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    margin-bottom: 10px;
+  }
+
+  .question-text {
+    font-size: 20px;
+    font-weight: 500;
+    color: #f0ede6;
+    line-height: 1.45;
+  }
+
+  /* ABCD POLL */
+  .abcd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .abcd-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    padding: 22px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f0ede6;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .abcd-btn:active { transform: scale(0.96); }
+
+  .abcd-btn .letter {
+    font-size: 28px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .abcd-btn .option-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.3;
+  }
+
+  .abcd-btn.selected {
+    background: rgba(79,124,255,0.20);
+    border-color: rgba(79,124,255,0.50);
+  }
+
+  .abcd-btn.selected .letter { color: #7da8ff; }
+
+  /* BINARY */
+  .binary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .binary-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 32px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f0ede6;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .binary-btn:active { transform: scale(0.96); }
+
+  .binary-btn.yes.selected {
+    background: rgba(52,199,89,0.18);
+    border-color: rgba(52,199,89,0.45);
+    color: #5de67a;
+  }
+
+  .binary-btn.no.selected {
+    background: rgba(255,80,80,0.16);
+    border-color: rgba(255,80,80,0.40);
+    color: #ff7a7a;
+  }
+
+  /* SCALE */
+  .scale-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  .scale-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    padding: 20px 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #f0ede6;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .scale-btn:active { transform: scale(0.96); }
+
+  .scale-btn.selected {
+    background: rgba(79,124,255,0.20);
+    border-color: rgba(79,124,255,0.50);
+    color: #7da8ff;
+  }
+
+  /* WORD CLOUD */
+  .word-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .word-input {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 18px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #f0ede6;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .word-input:focus { border-color: rgba(255,255,255,0.30); }
+  .word-input::placeholder { color: rgba(255,255,255,0.22); }
+
+  .submit-btn {
+    width: 100%;
+    background: #4f7cff;
+    border: none;
+    border-radius: 12px;
+    padding: 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* SUBMITTED STATE */
+  .submitted-wrap {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .submitted-wrap.visible { display: flex; }
+
+  .check-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(52,199,89,0.15);
+    border: 2px solid rgba(52,199,89,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+  }
+
+  .submitted-wrap h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f0ede6;
+  }
+
+  .submitted-wrap p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.40);
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">Classroom Live</div>
+
+<div class="waiting" id="waitingState">
+  <div class="waiting-icon">⏳</div>
+  <p>Waiting for your teacher<br>to launch a session...</p>
+</div>
+
+<div class="session-wrap" id="sessionWrap">
+  <div class="question-box">
+    <div class="question-label">Question</div>
+    <div class="question-text" id="questionText"></div>
+  </div>
+  <div id="inputArea"></div>
+</div>
+
+<div class="submitted-wrap" id="submittedWrap">
+  <div class="check-circle">✓</div>
+  <h2>Response received</h2>
+  <p>Your answer has been recorded.<br>Look up at the screen.</p>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://yxppaxroxgndbzgsmfqz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBheHJveGduZGJ6Z3NtZnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDc2NDAsImV4cCI6MjA5Nzk4MzY0MH0.5JNh_trRI1KCMkHmxIBLya95J1IwrgncE6eF6Sf-IE4';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentSession = null;
+let hasSubmitted = false;
+
+async function loadActiveSession() {
+  const { data } = await db.from('sessions')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (data) {
+    currentSession = data;
+    hasSubmitted = false;
+    showSession(data);
+  } else {
+    showWaiting();
+  }
+}
+
+function showWaiting() {
+  document.getElementById('waitingState').style.display = 'flex';
+  document.getElementById('sessionWrap').classList.remove('visible');
+  document.getElementById('submittedWrap').classList.remove('visible');
+  currentSession = null;
+}
+
+function showSession(session) {
+  document.getElementById('waitingState').style.display = 'none';
+  document.getElementById('submittedWrap').classList.remove('visible');
+  document.getElementById('sessionWrap').classList.add('visible');
+  document.getElementById('questionText').textContent = session.question;
+  renderInput(session);
+}
+
+function renderInput(session) {
+  const area = document.getElementById('inputArea');
+  area.innerHTML = '';
+
+  if (session.mode === 'poll_abcd') {
+    const letters = ['A','B','C','D'];
+    const grid = document.createElement('div');
+    grid.className = 'abcd-grid';
+    (session.options || letters).forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'abcd-btn';
+      btn.innerHTML = `<span class="letter">${letters[i]}</span><span class="option-text">${opt}</span>`;
+      btn.addEventListener('click', () => submitResponse(letters[i]));
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+
+  } else if (session.mode === 'poll_binary') {
+    const grid = document.createElement('div');
+    grid.className = 'binary-grid';
+    ['Yes','No'].forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = `binary-btn ${opt.toLowerCase()}`;
+      btn.textContent = opt;
+      btn.addEventListener('click', () => submitResponse(opt));
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+
+  } else if (session.mode === 'poll_scale') {
+    const grid = document.createElement('div');
+    grid.className = 'scale-grid';
+    [1,2,3,4,5].forEach(n => {
+      const btn = document.createElement('button');
+      btn.className = 'scale-btn';
+      btn.textContent = n;
+      btn.addEventListener('click', () => submitResponse(String(n)));
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+
+  } else if (session.mode === 'wordcloud') {
+    const wrap = document.createElement('div');
+    wrap.className = 'word-input-wrap';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'word-input';
+    input.placeholder = 'Type a word...';
+    input.maxLength = 40;
+    const btn = document.createElement('button');
+    btn.className = 'submit-btn';
+    btn.textContent = 'Submit';
+    btn.addEventListener('click', () => {
+      const val = input.value.trim();
+      if (val) submitResponse(val);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { const val = input.value.trim(); if (val) submitResponse(val); }
+    });
+    wrap.appendChild(input);
+    wrap.appendChild(btn);
+    area.appendChild(wrap);
+  }
+}
+
+async function submitResponse(value) {
+  if (hasSubmitted || !currentSession) return;
+  hasSubmitted = true;
+
+  await db.from('responses').insert({
+    session_id: currentSession.id,
+    value
+  });
+
+  document.getElementById('sessionWrap').classList.remove('visible');
+  document.getElementById('submittedWrap').classList.add('visible');
+}
+
+// Listen for new sessions
+db.channel('sessions-student')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'sessions'
+  }, () => { loadActiveSession(); })
+  .subscribe();
+
+loadActiveSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classroom Live · Display</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #13151a;
+    color: #f0ede6;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* WAITING */
+  .waiting {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    opacity: 0.35;
+  }
+
+  .waiting-icon { font-size: 52px; }
+
+  .waiting p {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* DISPLAY WRAP */
+  .display-wrap {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    padding: 40px 52px;
+    gap: 28px;
+  }
+
+  .display-wrap.visible { display: flex; }
+
+  /* HEADER */
+  .display-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .question-text {
+    font-size: 26px;
+    font-weight: 600;
+    color: #f0ede6;
+    line-height: 1.4;
+    max-width: 80%;
+  }
+
+  .count-badge {
+    flex-shrink: 0;
+    background: rgba(79,124,255,0.14);
+    border: 1px solid rgba(79,124,255,0.28);
+    border-radius: 8px;
+    padding: 8px 16px;
+    text-align: center;
+  }
+
+  .count-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #7da8ff;
+    line-height: 1;
+  }
+
+  .count-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    margin-top: 3px;
+  }
+
+  /* RESULTS AREA */
+  .results-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  /* POLL BAR */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .bar-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    width: 44px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 44px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 0%;
+    display: flex;
+    align-items: center;
+    padding-left: 14px;
+    min-width: 0;
+  }
+
+  .bar-fill-a { background: linear-gradient(90deg, #4f7cff, #6b93ff); }
+  .bar-fill-b { background: linear-gradient(90deg, #a855f7, #c084fc); }
+  .bar-fill-c { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .bar-fill-d { background: linear-gradient(90deg, #10b981, #34d399); }
+  .bar-fill-yes { background: linear-gradient(90deg, #10b981, #34d399); }
+  .bar-fill-no { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .bar-fill-1 { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .bar-fill-2 { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .bar-fill-3 { background: linear-gradient(90deg, #4f7cff, #6b93ff); }
+  .bar-fill-4 { background: linear-gradient(90deg, #a855f7, #c084fc); }
+  .bar-fill-5 { background: linear-gradient(90deg, #10b981, #34d399); }
+
+  .bar-option-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.90);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-count {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    width: 40px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  /* WORD CLOUD */
+  .word-cloud {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 18px;
+    padding: 10px;
+  }
+
+  .word-item {
+    display: inline-block;
+    font-weight: 700;
+    color: #f0ede6;
+    transition: transform 0.3s ease, font-size 0.4s ease;
+    animation: wordPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: default;
+    white-space: nowrap;
+  }
+
+  @keyframes wordPop {
+    from { opacity: 0; transform: scale(0.5); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* STUDENT URL BAR */
+  .student-bar {
+    background: rgba(255,255,255,0.04);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .student-bar-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.24);
+    white-space: nowrap;
+  }
+
+  .student-bar-url {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.50);
+  }
+</style>
+</head>
+<body>
+
+<div class="waiting" id="waitingState">
+  <div class="waiting-icon">📡</div>
+  <p>Waiting for session</p>
+</div>
+
+<div class="display-wrap" id="displayWrap">
+  <div class="display-header">
+    <div class="question-text" id="questionDisplay"></div>
+    <div class="count-badge">
+      <div class="count-num" id="totalCount">0</div>
+      <div class="count-label">responses</div>
+    </div>
+  </div>
+  <div class="results-area" id="resultsArea"></div>
+  <div class="student-bar">
+    <span class="student-bar-label">Students go to</span>
+    <span class="student-bar-url" id="studentBarUrl"></span>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://yxppaxroxgndbzgsmfqz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBheHJveGduZGJ6Z3NtZnF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDc2NDAsImV4cCI6MjA5Nzk4MzY0MH0.5JNh_trRI1KCMkHmxIBLya95J1IwrgncE6eF6Sf-IE4';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentSession = null;
+let responses = {};
+let wordCounts = {};
+let responseSub = null;
+
+const BASE = window.location.origin + window.location.pathname.replace('display.html','');
+document.getElementById('studentBarUrl').textContent = BASE + 'student.html';
+
+async function loadActiveSession() {
+  const { data } = await db.from('sessions')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (data) {
+    currentSession = data;
+    responses = {};
+    wordCounts = {};
+    await loadExistingResponses();
+    renderDisplay();
+    subscribeToResponses();
+  } else {
+    showWaiting();
+  }
+}
+
+async function loadExistingResponses() {
+  const { data } = await db.from('responses')
+    .select('value')
+    .eq('session_id', currentSession.id);
+
+  if (!data) return;
+  data.forEach(r => countResponse(r.value));
+}
+
+function countResponse(value) {
+  if (currentSession.mode === 'wordcloud') {
+    const word = value.toLowerCase().trim();
+    wordCounts[word] = (wordCounts[word] || 0) + 1;
+  } else {
+    responses[value] = (responses[value] || 0) + 1;
+  }
+}
+
+function getTotalCount() {
+  if (currentSession.mode === 'wordcloud') {
+    return Object.values(wordCounts).reduce((a,b) => a+b, 0);
+  }
+  return Object.values(responses).reduce((a,b) => a+b, 0);
+}
+
+function showWaiting() {
+  document.getElementById('waitingState').style.display = 'flex';
+  document.getElementById('displayWrap').classList.remove('visible');
+  currentSession = null;
+}
+
+function renderDisplay() {
+  document.getElementById('waitingState').style.display = 'none';
+  document.getElementById('displayWrap').classList.add('visible');
+  document.getElementById('questionDisplay').textContent = currentSession.question;
+  document.getElementById('totalCount').textContent = getTotalCount();
+
+  if (currentSession.mode === 'wordcloud') {
+    renderWordCloud();
+  } else {
+    renderBars();
+  }
+}
+
+function renderBars() {
+  const area = document.getElementById('resultsArea');
+  const total = getTotalCount() || 1;
+  let options = [];
+
+  if (currentSession.mode === 'poll_abcd') {
+    const letters = ['A','B','C','D'];
+    options = (currentSession.options || letters).map((opt, i) => ({
+      key: letters[i],
+      label: letters[i],
+      text: opt,
+      count: responses[letters[i]] || 0,
+      colorClass: `bar-fill-${letters[i].toLowerCase()}`
+    }));
+  } else if (currentSession.mode === 'poll_binary') {
+    options = ['Yes','No'].map(opt => ({
+      key: opt,
+      label: opt,
+      text: '',
+      count: responses[opt] || 0,
+      colorClass: `bar-fill-${opt.toLowerCase()}`
+    }));
+  } else if (currentSession.mode === 'poll_scale') {
+    options = [1,2,3,4,5].map(n => ({
+      key: String(n),
+      label: String(n),
+      text: '',
+      count: responses[String(n)] || 0,
+      colorClass: `bar-fill-${n}`
+    }));
+  }
+
+  area.innerHTML = '';
+  options.forEach(opt => {
+    const pct = Math.round((opt.count / total) * 100);
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.id = `bar-row-${opt.key}`;
+    row.innerHTML = `
+      <div class="bar-label">${opt.label}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${opt.colorClass}" id="bar-fill-${opt.key}" style="width:${pct}%">
+          ${opt.text ? `<span class="bar-option-text">${opt.text}</span>` : ''}
+        </div>
+      </div>
+      <div class="bar-count" id="bar-count-${opt.key}">${opt.count}</div>
+    `;
+    area.appendChild(row);
+  });
+}
+
+function updateBars() {
+  const total = getTotalCount() || 1;
+  let keys = [];
+
+  if (currentSession.mode === 'poll_abcd') keys = ['A','B','C','D'];
+  else if (currentSession.mode === 'poll_binary') keys = ['Yes','No'];
+  else if (currentSession.mode === 'poll_scale') keys = ['1','2','3','4','5'];
+
+  document.getElementById('totalCount').textContent = getTotalCount();
+
+  keys.forEach(key => {
+    const count = responses[key] || 0;
+    const pct = Math.round((count / total) * 100);
+    const fill = document.getElementById(`bar-fill-${key}`);
+    const countEl = document.getElementById(`bar-count-${key}`);
+    if (fill) fill.style.width = pct + '%';
+    if (countEl) countEl.textContent = count;
+  });
+}
+
+const WORD_COLORS = ['#7da8ff','#c084fc','#34d399','#fbbf24','#f87171','#60a5fa','#a78bfa','#4ade80'];
+
+function renderWordCloud() {
+  const area = document.getElementById('resultsArea');
+  area.innerHTML = '';
+  area.className = 'word-cloud';
+  document.getElementById('totalCount').textContent = getTotalCount();
+
+  const maxCount = Math.max(...Object.values(wordCounts), 1);
+  const sorted = Object.entries(wordCounts).sort((a,b) => b[1]-a[1]);
+
+  sorted.forEach(([word, count], i) => {
+    const size = 20 + Math.round((count / maxCount) * 52);
+    const el = document.createElement('span');
+    el.className = 'word-item';
+    el.id = `word-${word.replace(/\s/g,'_')}`;
+    el.textContent = word;
+    el.style.fontSize = size + 'px';
+    el.style.color = WORD_COLORS[i % WORD_COLORS.length];
+    area.appendChild(el);
+  });
+}
+
+function updateWordCloud(newWord) {
+  document.getElementById('totalCount').textContent = getTotalCount();
+  const maxCount = Math.max(...Object.values(wordCounts), 1);
+  const wordId = `word-${newWord.replace(/\s/g,'_')}`;
+  const existing = document.getElementById(wordId);
+
+  if (existing) {
+    const count = wordCounts[newWord];
+    const size = 20 + Math.round((count / maxCount) * 52);
+    existing.style.fontSize = size + 'px';
+    existing.style.transform = 'scale(1.15)';
+    setTimeout(() => { existing.style.transform = 'scale(1)'; }, 300);
+  } else {
+    renderWordCloud();
+  }
+
+  // Resize all existing words relative to new max
+  Object.entries(wordCounts).forEach(([word, count]) => {
+    const el = document.getElementById(`word-${word.replace(/\s/g,'_')}`);
+    if (el) {
+      const size = 20 + Math.round((count / maxCount) * 52);
+      el.style.fontSize = size + 'px';
+    }
+  });
+}
+
+function subscribeToResponses() {
+  if (responseSub) db.removeChannel(responseSub);
+  responseSub = db.channel('display-responses')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'responses',
+      filter: `session_id=eq.${currentSession.id}`
+    }, ({ new: row }) => {
+      countResponse(row.value);
+      if (currentSession.mode === 'wordcloud') {
+        updateWordCloud(row.value.toLowerCase().trim());
+      } else {
+        updateBars();
+      }
+    })
+    .subscribe();
+}
+
+// Watch for session changes
+db.channel('display-sessions')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'sessions'
+  }, () => {
+    if (responseSub) { db.removeChannel(responseSub); responseSub = null; }
+    loadActiveSession();
+  })
+  .subscribe();
+
+loadActiveSession();
+</script>
+</body>
+</html>
